@@ -1,3 +1,4 @@
+import type { LimitSnapshot } from "../types.js";
 import {
   action,
   type Action,
@@ -5,7 +6,7 @@ import {
   SingletonAction,
   type WillAppearEvent,
 } from "@elgato/streamdeck";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
 import { limitViews, nextLimitView } from "../lib/limits.js";
 import { svgDataUrl, limitKeySvg } from "../lib/visuals.js";
 import { renderKey } from "../lib/render-cache.js";
@@ -21,7 +22,7 @@ export class UsageAction extends SingletonAction {
   }
 
   async onKeyDown(event: KeyDownEvent): Promise<void> {
-    const snapshot = await codexStore.limitsSnapshot();
+    const snapshot = await activeProvider().limits();
     // Advance from what the key is showing, not from what was stored: an
     // untouched key displays the first view without having recorded it.
     const next = nextLimitView(snapshot, this.view(event.action.id, snapshot));
@@ -40,7 +41,7 @@ export class UsageAction extends SingletonAction {
 
   private async draw(actionInstance: Action): Promise<void> {
     if (!actionInstance.isKey()) return;
-    const snapshot = await codexStore.limitsSnapshot();
+    const snapshot = await activeProvider().limits();
     await renderKey(
       actionInstance,
       svgDataUrl(limitKeySvg(snapshot, this.view(actionInstance.id, snapshot))),
@@ -54,7 +55,7 @@ export class UsageAction extends SingletonAction {
    */
   private view(
     actionId: string,
-    snapshot: Awaited<ReturnType<typeof codexStore.limitsSnapshot>>,
+    snapshot: LimitSnapshot | undefined,
   ): string | undefined {
     const views = limitViews(snapshot);
     const stored = this.#view.get(actionId);
