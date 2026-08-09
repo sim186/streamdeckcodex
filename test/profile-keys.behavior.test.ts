@@ -49,9 +49,25 @@ const harness = vi.hoisted(() => {
         state.approvalMode = mode;
         return mode;
       }),
-      usageSnapshot: vi.fn(async () => ({
-        weekly: { usedPercent: 20 },
-        fiveHour: { usedPercent: 10 },
+      limitsSnapshot: vi.fn(async () => ({
+        agent: "codex",
+        observedAt: 0,
+        windows: [
+          {
+            id: "5h",
+            label: "5H",
+            used: 10,
+            unit: "percent",
+            fidelity: "exact",
+          },
+          {
+            id: "weekly",
+            label: "WEEKLY",
+            used: 20,
+            unit: "percent",
+            fidelity: "exact",
+          },
+        ],
       })),
       modelSnapshot: vi.fn(() => ({ current: "", options: [] })),
       reasoningSnapshot: vi.fn(() => ({ current: "medium", levels: [] })),

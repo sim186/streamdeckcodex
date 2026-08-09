@@ -2,10 +2,19 @@ import type {
   AgentSnapshot,
   AgentStatus,
   ContextSnapshot,
+  LimitSnapshot,
   SessionSnapshot,
-  UsageSnapshot,
 } from "../types.js";
 import { compactContext, type ContextView } from "./context.js";
+import {
+  BALANCE_VIEW,
+  formatBalance,
+  formatWindowRemaining,
+  formatWindowValue,
+  remainingPercentOf,
+  selectWindow,
+  usedPercentOf,
+} from "./limits.js";
 import type { CodexApprovalMode } from "./codex-ui-control.js";
 import { LUCIDE_PATHS } from "./lucide-paths.js";
 import { WORDMARK_PATHS } from "./wordmark-paths.js";
@@ -316,49 +325,74 @@ export function keycapSvg(
   </svg>`;
 }
 
-export function usageKeySvg(
-  snapshot: UsageSnapshot | undefined,
-  mode: "weekly" | "resets" = "weekly",
+function limitValueSize(value: string): number {
+  if (value.length <= 4) return 40;
+  if (value.length <= 6) return 32;
+  if (value.length <= 9) return 24;
+  return 19;
+}
+
+function resetLabel(resetsAt: number | undefined, now: number): string {
+  if (resetsAt === undefined) return "NO DATA";
+  const remainingMs = Math.max(0, resetsAt * 1000 - now);
+  return remainingMs >= 24 * 60 * 60 * 1000
+    ? `${Math.ceil(remainingMs / (24 * 60 * 60 * 1000))}D`
+    : `${Math.max(1, Math.ceil(remainingMs / (60 * 60 * 1000)))}H`;
+}
+
+/**
+ * Renders one view of a limit snapshot: a named window, or the overflow
+ * balance. An inferred window is prefixed with `~` so a modelled figure is
+ * never mistaken for one the vendor published.
+ */
+export function limitKeySvg(
+  snapshot: LimitSnapshot | undefined,
+  view: string | undefined,
   now = Date.now(),
 ): string {
-  const used = Math.round(snapshot?.usedPercent ?? 0);
-  const remaining = Math.max(0, 100 - used);
-  const color =
-    snapshot === undefined
-      ? "#6C7480"
-      : used >= 90
+  const balanceView = view === BALANCE_VIEW && snapshot?.balance !== undefined;
+  const window = balanceView ? undefined : selectWindow(snapshot, view ?? "");
+  const known = balanceView || window !== undefined;
+
+  const usedPercent = window ? usedPercentOf(window) : undefined;
+  const color = !known
+    ? "#6C7480"
+    : usedPercent === undefined
+      ? "#B8C0CC"
+      : usedPercent >= 90
         ? "#F85149"
-        : used >= 70
+        : usedPercent >= 70
           ? "#F4B740"
           : "#35C759";
-  const resetMs = snapshot?.resetsAt
-    ? Math.max(0, snapshot.resetsAt * 1000 - now)
-    : undefined;
-  const reset =
-    resetMs === undefined
+
+  const remaining = window ? formatWindowRemaining(window) : undefined;
+  const heading = balanceView
+    ? (snapshot?.balance?.label ?? "BALANCE")
+    : window === undefined
+      ? "LIMITS"
+      : `${window.label} ${remaining === undefined ? "USED" : "LEFT"}`;
+
+  const rawValue = balanceView
+    ? formatBalance(snapshot!.balance!)
+    : window === undefined
       ? "NO DATA"
-      : resetMs >= 24 * 60 * 60 * 1000
-        ? `${Math.ceil(resetMs / (24 * 60 * 60 * 1000))}D`
-        : `${Math.max(1, Math.ceil(resetMs / (60 * 60 * 1000)))}H`;
-  const mainValue =
-    mode === "resets"
-      ? snapshot?.resetsAvailable === undefined
-        ? "NO DATA"
-        : String(snapshot.resetsAvailable)
-      : snapshot
-        ? `${remaining}%`
-        : "NO DATA";
-  const heading = mode === "resets" ? "RESETS" : "WEEKLY LEFT";
-  const footer =
-    mode === "resets" ? "AVAILABLE" : snapshot ? `RESET ${reset}` : "";
-  const valueSize = snapshot ? 40 : 22;
+      : (remaining ?? formatWindowValue(window));
+  const value = window?.fidelity === "estimated" ? `~${rawValue}` : rawValue;
+
+  const footer = balanceView
+    ? "AVAILABLE"
+    : window === undefined
+      ? ""
+      : `RESET ${resetLabel(window.resetsAt, now)}`;
+
+  const barPercent = window ? remainingPercentOf(window) : undefined;
   const barWidth =
-    snapshot && mode === "weekly" ? Math.round(104 * (remaining / 100)) : 0;
+    barPercent === undefined ? 0 : Math.round(104 * (barPercent / 100));
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
     <rect width="144" height="144" fill="#090B0F"/>
     <text x="72" y="34" text-anchor="middle" fill="#B8C0CC" font-family="-apple-system,system-ui,sans-serif" font-size="14" font-weight="750" letter-spacing=".25">${heading}</text>
-    <text x="72" y="82" text-anchor="middle" fill="#FFFFFF" font-family="-apple-system,system-ui,sans-serif" font-size="${valueSize}" font-weight="800">${mainValue}</text>
+    <text x="72" y="82" text-anchor="middle" fill="#FFFFFF" font-family="-apple-system,system-ui,sans-serif" font-size="${limitValueSize(value)}" font-weight="800">${value}</text>
     <rect x="20" y="96" width="104" height="8" rx="4" fill="#2B313B"/>
     <rect x="20" y="96" width="${barWidth}" height="8" rx="4" fill="${color}"/>
     <text x="72" y="127" text-anchor="middle" fill="${color}" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="750" letter-spacing=".35">${footer}</text>

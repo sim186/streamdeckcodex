@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { updateThreadSettings } from "../src/lib/app-server.ts";
 import { activeDesktopThreadId } from "../src/lib/desktop-active.ts";
 import { parseLatestContext } from "../src/lib/context.ts";
-import { fetchAccountUsage } from "../src/lib/usage.ts";
+import { fetchAccountLimits } from "../src/lib/usage.ts";
 
 const databasePath = join(homedir(), ".codex", "state_5.sqlite");
 const database = new DatabaseSync(databasePath, {
@@ -113,11 +113,11 @@ try {
     });
   }
 
-  const usage = await fetchAccountUsage();
+  const limits = await fetchAccountLimits();
   results.push({
     control: "Live usage",
     expected: "number",
-    observed: typeof usage.usedPercent,
+    observed: typeof limits.windows[0]?.used,
   });
   const context = parseLatestContext(
     readFileSync(current.rollout_path, "utf8"),

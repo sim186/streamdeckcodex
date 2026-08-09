@@ -76,10 +76,50 @@ export function formatWindowValue(window: LimitWindow): string {
   return window.limit === undefined ? used : `${used}/${format(window.limit)}`;
 }
 
+/**
+ * Renders what is left rather than what is spent. Undefined when the vendor
+ * publishes no cap, which leaves nothing to subtract from.
+ */
+export function formatWindowRemaining(window: LimitWindow): string | undefined {
+  if (window.unit === "percent") {
+    return `${Math.round(clampPercent(100 - window.used))}%`;
+  }
+  if (window.limit === undefined) return undefined;
+  const format = window.unit === "usd" ? formatUsd : formatTokens;
+  return format(Math.max(0, window.limit - window.used));
+}
+
 export function formatBalance(balance: LimitBalance): string {
   return balance.unit === "usd"
     ? formatUsd(balance.amount)
     : String(balance.amount);
+}
+
+/** The view id used for a snapshot's overflow pool. */
+export const BALANCE_VIEW = "balance";
+
+/**
+ * The views a key can cycle through for this snapshot: one per published
+ * window, then the balance when the vendor exposes one. Derived from the
+ * snapshot so a Codex key offers 5h/weekly/resets while an OpenCode Go key
+ * offers 5h/weekly/monthly/balance, with no per-provider branching.
+ */
+export function limitViews(snapshot: LimitSnapshot | undefined): string[] {
+  if (snapshot === undefined) return [];
+  return [
+    ...snapshot.windows.map((window) => window.id),
+    ...(snapshot.balance ? [BALANCE_VIEW] : []),
+  ];
+}
+
+export function nextLimitView(
+  snapshot: LimitSnapshot | undefined,
+  current: string | undefined,
+): string | undefined {
+  const views = limitViews(snapshot);
+  if (views.length === 0) return undefined;
+  const index = current === undefined ? -1 : views.indexOf(current);
+  return views[(index + 1) % views.length];
 }
 
 export function selectWindow(

@@ -1,15 +1,9 @@
 import { spawn } from "node:child_process";
-import type { LimitSnapshot, UsageSnapshot } from "../types.js";
+import type { LimitSnapshot } from "../types.js";
 import { resolveCodexBinary } from "./app-server.js";
 import { buildWindow } from "./limits.js";
 
 export const CODEX_AGENT_ID = "codex";
-
-export type UsageView = "weekly" | "resets";
-
-export function toggleUsageView(view: UsageView): UsageView {
-  return view === "weekly" ? "resets" : "weekly";
-}
 
 interface RolloutRateLimitWindow {
   used_percent?: number;
@@ -42,44 +36,6 @@ interface RateLimitsReadResult {
   rateLimitResetCredits?: {
     availableCount?: number;
   } | null;
-}
-
-function weeklyWindow(
-  primary?: RateLimitWindow | null,
-  secondary?: RateLimitWindow | null,
-): RateLimitWindow | undefined {
-  return [primary, secondary]
-    .filter(
-      (window): window is RateLimitWindow =>
-        window !== null && window !== undefined,
-    )
-    .sort(
-      (left, right) =>
-        (right.windowDurationMins ?? 0) - (left.windowDurationMins ?? 0),
-    )[0];
-}
-
-export function usageFromRateLimitsResult(
-  result: RateLimitsReadResult,
-  observedAt = Date.now(),
-): UsageSnapshot | undefined {
-  const window = weeklyWindow(
-    result.rateLimits?.primary,
-    result.rateLimits?.secondary,
-  );
-  if (typeof window?.usedPercent !== "number") return undefined;
-  const resetsAvailable = result.rateLimitResetCredits?.availableCount;
-  return {
-    usedPercent: Math.max(0, Math.min(100, window.usedPercent)),
-    observedAt,
-    ...(typeof window.windowDurationMins === "number"
-      ? { windowMinutes: window.windowDurationMins }
-      : {}),
-    ...(typeof window.resetsAt === "number"
-      ? { resetsAt: window.resetsAt }
-      : {}),
-    ...(typeof resetsAvailable === "number" ? { resetsAvailable } : {}),
-  };
 }
 
 /**
@@ -220,17 +176,6 @@ export function readAccountRateLimits(
   });
 }
 
-export async function fetchAccountUsage(
-  timeoutMs = 5000,
-): Promise<UsageSnapshot> {
-  const snapshot = usageFromRateLimitsResult(
-    await readAccountRateLimits(timeoutMs),
-    Date.now(),
-  );
-  if (!snapshot) throw new Error("Codex returned no usage snapshot");
-  return snapshot;
-}
-
 export async function fetchAccountLimits(
   timeoutMs = 5000,
 ): Promise<LimitSnapshot> {
@@ -283,38 +228,6 @@ export function parseLatestLimits(lines: string): LimitSnapshot | undefined {
       return {
         agent: CODEX_AGENT_ID,
         windows,
-        observedAt: Number.isFinite(observedAt) ? observedAt : 0,
-      };
-    } catch {
-      // Ignore malformed or partially written rollout lines.
-    }
-  }
-  return undefined;
-}
-
-export function parseLatestUsage(lines: string): UsageSnapshot | undefined {
-  const entries = lines.split("\n");
-  for (let index = entries.length - 1; index >= 0; index -= 1) {
-    const line = entries[index]!;
-    if (!line.includes('"rate_limits"')) continue;
-    try {
-      const event = JSON.parse(line) as TokenCountEvent;
-      const primary = event.payload?.rate_limits?.primary;
-      if (
-        event.payload?.type !== "token_count" ||
-        typeof primary?.used_percent !== "number"
-      ) {
-        continue;
-      }
-      const observedAt = Date.parse(event.timestamp ?? "");
-      return {
-        usedPercent: Math.max(0, Math.min(100, primary.used_percent)),
-        ...(typeof primary.window_minutes === "number"
-          ? { windowMinutes: primary.window_minutes }
-          : {}),
-        ...(typeof primary.resets_at === "number"
-          ? { resetsAt: primary.resets_at }
-          : {}),
         observedAt: Number.isFinite(observedAt) ? observedAt : 0,
       };
     } catch {

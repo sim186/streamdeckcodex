@@ -12,10 +12,10 @@ import { DatabaseSync } from "node:sqlite";
 import type {
   AgentSnapshot,
   ContextSnapshot,
+  LimitSnapshot,
   ModelSnapshot,
   ReasoningSnapshot,
   ThreadRecord,
-  UsageSnapshot,
 } from "../types.js";
 import type { SessionSnapshot } from "../types.js";
 import { projectSessions } from "./chat-label.js";
@@ -29,7 +29,7 @@ import {
   reduceRolloutEvents,
   type RolloutEvent,
 } from "./rollout-status.js";
-import { fetchAccountUsage, parseLatestUsage } from "./usage.js";
+import { fetchAccountLimits, parseLatestLimits } from "./usage.js";
 import { activeDesktopThreadId } from "./desktop-active.js";
 import { parseLatestContext } from "./context.js";
 import {
@@ -224,8 +224,8 @@ export class CodexStore {
   readonly #acknowledged = new Map<string, number>();
   #database: DatabaseSync | undefined;
   #cache: { at: number; snapshots: AgentSnapshot[] } | undefined;
-  #usageCache: { at: number; snapshot?: UsageSnapshot } | undefined;
-  #usagePromise: Promise<UsageSnapshot | undefined> | undefined;
+  #limitsCache: { at: number; snapshot?: LimitSnapshot } | undefined;
+  #limitsPromise: Promise<LimitSnapshot | undefined> | undefined;
   #contextCache:
     { at: number; threadId?: string; snapshot?: ContextSnapshot } | undefined;
   readonly #activeThreadId: () => string | undefined;
@@ -677,32 +677,32 @@ export class CodexStore {
     this.#focusedProjectionCache = undefined;
   }
 
-  async usageSnapshot(): Promise<UsageSnapshot | undefined> {
+  async limitsSnapshot(): Promise<LimitSnapshot | undefined> {
     const now = Date.now();
-    if (this.#usageCache && now - this.#usageCache.at < 30_000) {
-      return this.#usageCache.snapshot;
+    if (this.#limitsCache && now - this.#limitsCache.at < 30_000) {
+      return this.#limitsCache.snapshot;
     }
-    if (this.#usagePromise) return this.#usagePromise;
+    if (this.#limitsPromise) return this.#limitsPromise;
 
-    this.#usagePromise = (async () => {
-      let snapshot: UsageSnapshot | undefined;
+    this.#limitsPromise = (async () => {
+      let snapshot: LimitSnapshot | undefined;
       try {
-        snapshot = await fetchAccountUsage();
+        snapshot = await fetchAccountLimits();
       } catch {
         snapshot = this.recentThreads(12)
-          .map((thread) => parseLatestUsage(readFileTail(thread.rolloutPath)))
-          .filter((usage): usage is UsageSnapshot => usage !== undefined)
+          .map((thread) => parseLatestLimits(readFileTail(thread.rolloutPath)))
+          .filter((limits): limits is LimitSnapshot => limits !== undefined)
           .sort((left, right) => right.observedAt - left.observedAt)[0];
       }
-      this.#usageCache = {
+      this.#limitsCache = {
         at: Date.now(),
         ...(snapshot ? { snapshot } : {}),
       };
       return snapshot;
     })().finally(() => {
-      this.#usagePromise = undefined;
+      this.#limitsPromise = undefined;
     });
-    return this.#usagePromise;
+    return this.#limitsPromise;
   }
 
   #open(): DatabaseSync {

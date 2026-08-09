@@ -29,7 +29,7 @@ await build({
         commandKeySvg,
         contextKeySvg,
         keycapSvg,
-        usageKeySvg,
+        limitKeySvg,
       } from "./src/lib/visuals.ts";
       export { COMMANDS } from "./src/lib/commands.ts";
       export { WORKFLOWS } from "./src/lib/workflows.ts";
@@ -284,12 +284,24 @@ function renderAction(action, index) {
       );
     }
     case "com.todd.streamdeckcodex.usage":
-      return visuals.usageKeySvg({
-        observedAt: Date.now(),
-        resetsAt: Date.now() / 1000 + 2 * 24 * 60 * 60,
-        resetsAvailable: 3,
-        usedPercent: 42,
-      });
+      return visuals.limitKeySvg(
+        {
+          agent: "codex",
+          observedAt: Date.now(),
+          windows: [
+            {
+              id: "weekly",
+              label: "WEEKLY",
+              used: 42,
+              unit: "percent",
+              fidelity: "exact",
+              resetsAt: Date.now() / 1000 + 2 * 24 * 60 * 60,
+            },
+          ],
+          balance: { amount: 3, unit: "credits", label: "RESETS" },
+        },
+        "weekly",
+      );
     case "com.todd.streamdeckcodex.context":
       return visuals.contextKeySvg({
         maxTokens: 258_000,

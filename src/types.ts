@@ -48,14 +48,6 @@ export interface ModelSnapshot {
   threadId?: string;
 }
 
-export interface UsageSnapshot {
-  usedPercent: number;
-  observedAt: number;
-  windowMinutes?: number;
-  resetsAt?: number;
-  resetsAvailable?: number;
-}
-
 /**
  * How a vendor meters a limit window. Codex and Claude Code report a
  * percentage of an opaque allowance; OpenCode Go meters in dollars against a

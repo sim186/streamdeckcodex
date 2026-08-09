@@ -10,7 +10,7 @@ import {
   commandKeySvg,
   contextKeySvg,
   keycapSvg,
-  usageKeySvg,
+  limitKeySvg,
 } from "../src/lib/visuals.js";
 
 function visualFor(row: ProfileKeyContract): string {
@@ -32,7 +32,7 @@ function visualFor(row: ProfileKeyContract): string {
         String(row.settings.icon),
       );
     case "usage":
-      return usageKeySvg(undefined, "weekly");
+      return limitKeySvg(undefined, "weekly");
   }
 }
 
