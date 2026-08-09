@@ -91,6 +91,36 @@ Codex version, and the failing action when
 - On Stream Deck +, previews and applies Model and Reasoning selections with
   live dial feedback.
 
+### Mirabox Stream Dock (experimental, untested on hardware)
+
+A second build targets Mirabox Stream Dock devices. Stream Dock's plugin host
+reuses the command line, WebSocket registration, and event vocabulary of
+Elgato's original SDK, and bundles its own Node runtime, so the providers,
+renderers, and refresh loop are shared with the Elgato build and only the
+transport differs.
+
+```sh
+npm run build:streamdock   # → com.todd.streamdockcodex.sdPlugin/plugin/index.js
+```
+
+Copy `com.todd.streamdockcodex.sdPlugin` into Stream Dock's plugin directory,
+then place the Agent Chat, Quota, and Context keys yourself. Set each Agent
+Chat key's `slot` to choose which recent chat it shows.
+
+Known constraints, all confirmed against Mirabox's published SDK:
+
+- **No bundled profiles.** Stream Dock has no profile-installation mechanism,
+  so there is no equivalent of the auto-installed Elgato layouts. Keys are
+  placed by hand.
+- **Node 20.** Stream Dock bundles an older runtime than the Elgato app, so
+  this build targets Node 20 and `node:sqlite` is loaded only when the Codex
+  backend first reads. A host whose runtime predates `node:sqlite` can still
+  run the Claude Code backend.
+- **Keys only.** Model, Reasoning, and Agent Navigator remain dial-only and are
+  not part of this build; knob-equipped Stream Dock models are not addressed.
+- **Untested on hardware.** Everything here is verified by unit tests against
+  the documented protocol. It has never run on a physical Stream Dock.
+
 ### Agent backends
 
 The companion drives Codex by default. A second backend, Claude Code, reads

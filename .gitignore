@@ -17,6 +17,8 @@ extracted-app-icons/
 *.sqlite-wal
 com.todd.streamdeckcodex.sdPlugin/bin/
 com.todd.streamdeckcodex.sdPlugin/logs/
+com.todd.streamdockcodex.sdPlugin/plugin/index.js
+com.todd.streamdockcodex.sdPlugin/log/
 *.streamDeckPlugin
 *.log
 .DS_Store

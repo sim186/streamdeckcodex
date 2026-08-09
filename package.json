@@ -42,8 +42,8 @@
     "profile:keycaps:install": "node scripts/install-keycap-pages.mjs",
     "native:build": "node scripts/build-native.mjs",
     "generated:check": "npm run icons:lucide -- --check && npm run icons:static -- --check && npm run icons:wordmarks -- --check && npm run licenses:bundle -- --check && npm run profile:check",
-    "build:bundle": "esbuild src/plugin.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=com.todd.streamdeckcodex.sdPlugin/bin/plugin.js --sourcemap",
-    "build": "npm run icons:lucide && npm run icons:static && npm run icons:wordmarks && npm run licenses:bundle && npm run profile:generate && npm run native:build && npm run profile:build && npm run build:bundle",
+    "build:bundle": "esbuild src/plugin.ts --bundle --platform=node --format=esm --target=node24 --banner:js=\"import { createRequire as __nodeRequire } from 'node:module'; const require = __nodeRequire(import.meta.url);\" --outfile=com.todd.streamdeckcodex.sdPlugin/bin/plugin.js --sourcemap",
+    "build": "npm run icons:lucide && npm run icons:static && npm run icons:wordmarks && npm run licenses:bundle && npm run profile:generate && npm run native:build && npm run profile:build && npm run build:bundle && npm run build:streamdock",
     "watch": "npm run build -- --watch",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -69,16 +69,19 @@
     "qa:design": "npm run qa:visuals && node scripts/evaluate-profile-design.mjs",
     "qa:design:release": "npm run qa:visuals && node scripts/evaluate-profile-design.mjs --release",
     "check": "npm run public:check && npm run generated:check && npm run native:build && npm run format:check && npm run typecheck && npm run test:unit && npm run qa:design && npm run build:bundle && npm run validate",
-    "release:bundle": "npm run check && npm run pack && node scripts/stage-release.mjs"
+    "release:bundle": "npm run check && npm run pack && node scripts/stage-release.mjs",
+    "build:streamdock": "esbuild src/surfaces/streamdock/main.ts --bundle --platform=node --format=esm --target=node20 --banner:js=\"import { createRequire as __nodeRequire } from 'node:module'; const require = __nodeRequire(import.meta.url);\" --outfile=com.todd.streamdockcodex.sdPlugin/plugin/index.js"
   },
   "dependencies": {
     "@elgato/streamdeck": "2.1.0",
-    "lucide-static": "^0.468.0"
+    "lucide-static": "^0.468.0",
+    "ws": "8.18.3"
   },
   "devDependencies": {
     "@electron/asar": "4.2.1",
     "@elgato/cli": "1.7.4",
     "@types/node": "26.1.1",
+    "@types/ws": "8.18.1",
     "acorn": "8.17.0",
     "esbuild": "0.28.1",
     "opentype.js": "1.3.4",

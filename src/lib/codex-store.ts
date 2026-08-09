@@ -1,7 +1,8 @@
 import { readFileSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
 import type {
   AgentSnapshot,
   ContextSnapshot,
@@ -34,6 +35,30 @@ import {
 } from "./codex-ui-control.js";
 
 const LIVE_COMPOSER_CACHE_MS = 1_000;
+
+type DatabaseSyncConstructor = new (
+  path: string,
+  options?: { readOnly?: boolean; timeout?: number },
+) => DatabaseSync;
+
+let cachedDatabaseSync: DatabaseSyncConstructor | undefined;
+
+/**
+ * Loads node:sqlite on first use rather than at import.
+ *
+ * The module needs a newer Node than every host ships -- Stream Dock bundles
+ * Node 20 -- and only the Codex backend touches SQLite at all. Deferring the
+ * load lets the plugin start, and a non-Codex backend work, on a host whose
+ * runtime could never have imported it.
+ */
+function databaseSyncConstructor(): DatabaseSyncConstructor {
+  if (cachedDatabaseSync) return cachedDatabaseSync;
+  const required = createRequire(import.meta.url)("node:sqlite") as {
+    DatabaseSync: DatabaseSyncConstructor;
+  };
+  cachedDatabaseSync = required.DatabaseSync;
+  return cachedDatabaseSync;
+}
 
 export {
   activeDesktopThreadId,
@@ -682,7 +707,7 @@ export class CodexStore {
 
   #open(): DatabaseSync {
     if (this.#database) return this.#database;
-    const database = new DatabaseSync(this.databasePath, {
+    const database = new (databaseSyncConstructor())(this.databasePath, {
       readOnly: true,
       timeout: 1000,
     });
