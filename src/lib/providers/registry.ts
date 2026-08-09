@@ -1,3 +1,4 @@
+import { claudeCodeProvider } from "./claude-code.js";
 import { codexProvider } from "./codex.js";
 import type { AgentProvider } from "./types.js";
 
@@ -41,4 +42,8 @@ export function resetProviders(): void {
   activeId = undefined;
 }
 
+// Codex registers first and so stays the active backend: this plugin ships as
+// a Codex companion, and Claude Code is available to select rather than
+// imposed on an existing install.
 registerProvider(codexProvider);
+registerProvider(claudeCodeProvider);

@@ -7,7 +7,8 @@ import streamDeck, {
   type WillAppearEvent,
 } from "@elgato/streamdeck";
 import { applyReasoning } from "../lib/automation.js";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
+import { requireFeature } from "../lib/providers/types.js";
 import { pickerFailureLabel } from "../lib/codex-ui-control.js";
 import {
   confirmReasoning,
@@ -38,7 +39,7 @@ export class ReasoningAction extends SingletonAction<ReasoningSettings> {
 
   async onWillAppear(event: WillAppearEvent<ReasoningSettings>): Promise<void> {
     if (!event.action.isDial()) return;
-    const snapshot = codexStore.reasoningSnapshot();
+    const snapshot = requireFeature(activeProvider(), "reasoning")();
     const applied = snapshot.current;
     const configured = event.payload.settings.selectedLevel;
     const selected =
@@ -51,7 +52,7 @@ export class ReasoningAction extends SingletonAction<ReasoningSettings> {
   }
 
   async onDialRotate(event: DialRotateEvent<ReasoningSettings>): Promise<void> {
-    const snapshot = codexStore.reasoningSnapshot();
+    const snapshot = requireFeature(activeProvider(), "reasoning")();
     const current = this.#state.get(event.action.id) ?? {
       selected: supportedSelection(snapshot.current, snapshot.levels),
       applied: snapshot.current,
@@ -78,7 +79,7 @@ export class ReasoningAction extends SingletonAction<ReasoningSettings> {
   }
 
   async refreshAll(): Promise<void> {
-    const snapshot = codexStore.reasoningSnapshot();
+    const snapshot = requireFeature(activeProvider(), "reasoning")();
     await Promise.all(
       [...this.actions]
         .filter((visible) => visible.isDial())
@@ -105,7 +106,7 @@ export class ReasoningAction extends SingletonAction<ReasoningSettings> {
     context: string,
     actionInstance: Action<ReasoningSettings>,
   ): Promise<void> {
-    const snapshot = codexStore.reasoningSnapshot();
+    const snapshot = requireFeature(activeProvider(), "reasoning")();
     const current = this.#state.get(context) ?? {
       selected: supportedSelection(snapshot.current, snapshot.levels),
       applied: snapshot.current,
@@ -133,7 +134,7 @@ export class ReasoningAction extends SingletonAction<ReasoningSettings> {
   ): Promise<void> {
     try {
       streamDeck.logger.info(`Applying reasoning level ${level} on dial press`);
-      const snapshot = codexStore.reasoningSnapshot();
+      const snapshot = requireFeature(activeProvider(), "reasoning")();
       const optionIndex = snapshot.levels.indexOf(level);
       if (optionIndex < 0)
         throw new Error(`Unsupported reasoning level ${level}`);
@@ -149,7 +150,7 @@ export class ReasoningAction extends SingletonAction<ReasoningSettings> {
           `Live Codex picker retained ${live.effort ?? "no effort"} instead of ${level}`,
         );
       }
-      codexStore.invalidate();
+      activeProvider().invalidate();
       const state = confirmReasoning({ selected: level, applied: "" }).state;
       this.#state.set(context, state);
       await actionInstance.setSettings({
@@ -159,7 +160,7 @@ export class ReasoningAction extends SingletonAction<ReasoningSettings> {
       await this.draw(
         actionInstance,
         state,
-        codexStore.reasoningSnapshot().levels,
+        requireFeature(activeProvider(), "reasoning")().levels,
       );
       streamDeck.logger.info(`Applied reasoning level ${level}`);
     } catch (error) {

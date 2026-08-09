@@ -8,7 +8,7 @@ import {
   type WillAppearEvent,
 } from "@elgato/streamdeck";
 import { launchWorkflow } from "../lib/automation.js";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
 import { commandKeySvg, svgDataUrl } from "../lib/visuals.js";
 import { renderFeedback, renderKey } from "../lib/render-cache.js";
 import {
@@ -80,7 +80,7 @@ export class WorkflowAction extends SingletonAction<WorkflowSettings> {
     settings: WorkflowSettings,
   ): Promise<void> {
     try {
-      const focusedThread = codexStore.focusedThread();
+      const focusedThread = activeProvider().focusedSession();
       if (!focusedThread && !settings.path) {
         throw new Error("No focused Codex task is available.");
       }

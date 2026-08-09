@@ -6,7 +6,7 @@ import {
   type WillAppearEvent,
 } from "@elgato/streamdeck";
 import { openNewChat, openThread } from "../lib/automation.js";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
 import { agentKeySvg, svgDataUrl } from "../lib/visuals.js";
 import { renderKey } from "../lib/render-cache.js";
 
@@ -25,13 +25,13 @@ export class AgentStatusAction extends SingletonAction<AgentSettings> {
       event.payload.settings,
       (event.action.coordinates?.column ?? 0) + 1,
     );
-    const snapshot = codexStore.sessions(8)[slot];
+    const snapshot = activeProvider().listSessions(8)[slot];
     try {
       if (snapshot) {
-        codexStore.acknowledge(snapshot.id);
+        activeProvider().acknowledge(snapshot.id);
         await openThread(snapshot.id);
       } else {
-        await openNewChat(codexStore.latestThread()?.cwd);
+        await openNewChat(activeProvider().latestSession()?.cwd);
       }
       await this.draw(event.action);
     } catch {
@@ -54,7 +54,7 @@ export class AgentStatusAction extends SingletonAction<AgentSettings> {
       settings,
       (actionInstance.coordinates?.column ?? 0) + 1,
     );
-    const snapshot = codexStore.sessions(8)[slot];
+    const snapshot = activeProvider().listSessions(8)[slot];
     await renderKey(actionInstance, svgDataUrl(agentKeySvg(snapshot, slot)));
   }
 

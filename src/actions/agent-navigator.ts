@@ -7,7 +7,7 @@ import {
   type WillAppearEvent,
 } from "@elgato/streamdeck";
 import { openNewChat, openThread } from "../lib/automation.js";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
 import { statusIndicator } from "../lib/visuals.js";
 import { renderFeedback } from "../lib/render-cache.js";
 
@@ -21,7 +21,7 @@ export class AgentNavigatorAction extends SingletonAction<NavigatorSettings> {
 
   async onWillAppear(event: WillAppearEvent<NavigatorSettings>): Promise<void> {
     if (!event.action.isDial()) return;
-    const sessions = codexStore.sessions(8);
+    const sessions = activeProvider().listSessions(8);
     const activeIndex = sessions.findIndex((session) => session.isActive);
     const index =
       activeIndex >= 0
@@ -32,7 +32,7 @@ export class AgentNavigatorAction extends SingletonAction<NavigatorSettings> {
   }
 
   async onDialRotate(event: DialRotateEvent<NavigatorSettings>): Promise<void> {
-    const sessions = codexStore.sessions(8);
+    const sessions = activeProvider().listSessions(8);
     if (sessions.length === 0) return;
     const current = this.#selection.get(event.action.id) ?? 0;
     const next =
@@ -60,10 +60,11 @@ export class AgentNavigatorAction extends SingletonAction<NavigatorSettings> {
     context: string,
     actionInstance: Action<NavigatorSettings>,
   ): Promise<void> {
-    const selected = codexStore.sessions(8)[this.#selection.get(context) ?? 0];
+    const selected =
+      activeProvider().listSessions(8)[this.#selection.get(context) ?? 0];
     try {
       if (selected) {
-        codexStore.acknowledge(selected.id);
+        activeProvider().acknowledge(selected.id);
         await openThread(selected.id);
       } else {
         await openNewChat();
@@ -76,7 +77,7 @@ export class AgentNavigatorAction extends SingletonAction<NavigatorSettings> {
 
   private async draw(actionInstance: Action<NavigatorSettings>): Promise<void> {
     if (!actionInstance.isDial()) return;
-    const sessions = codexStore.sessions(8);
+    const sessions = activeProvider().listSessions(8);
     const rawIndex = this.#selection.get(actionInstance.id) ?? 0;
     const index =
       sessions.length === 0 ? 0 : Math.min(rawIndex, sessions.length - 1);

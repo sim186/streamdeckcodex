@@ -1,11 +1,4 @@
-import {
-  closeSync,
-  fstatSync,
-  openSync,
-  readFileSync,
-  readSync,
-  statSync,
-} from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -18,6 +11,7 @@ import type {
   ThreadRecord,
 } from "../types.js";
 import type { SessionSnapshot } from "../types.js";
+import { readFileTail } from "./file-tail.js";
 import { projectSessions } from "./chat-label.js";
 import {
   DEFAULT_REASONING_LEVELS,
@@ -87,25 +81,6 @@ export function resolveStateDatabase(codexHome = resolveCodexHome()): string {
     // The default location remains authoritative when no readable config exists.
   }
   return join(codexHome, "state_5.sqlite");
-}
-
-export function readFileTail(path: string, maxBytes = 512 * 1024): string {
-  let file: number | undefined;
-  try {
-    file = openSync(path, "r");
-    const size = fstatSync(file).size;
-    const start = Math.max(0, size - maxBytes);
-    const buffer = Buffer.alloc(size - start);
-    readSync(file, buffer, 0, buffer.length, start);
-    const content = buffer.toString("utf8");
-    if (start === 0) return content;
-    const firstNewline = content.indexOf("\n");
-    return firstNewline < 0 ? "" : content.slice(firstNewline + 1);
-  } catch {
-    return "";
-  } finally {
-    if (file !== undefined) closeSync(file);
-  }
 }
 
 export function readableThreadTitle(

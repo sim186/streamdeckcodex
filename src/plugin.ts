@@ -9,7 +9,7 @@ import { ModelAction } from "./actions/model.js";
 import { ReasoningAction } from "./actions/reasoning.js";
 import { UsageAction } from "./actions/usage.js";
 import { WorkflowAction } from "./actions/workflow.js";
-import { codexStore } from "./lib/codex-store.js";
+import { activeProvider } from "./lib/providers/registry.js";
 import { releaseSynthesizedKeysSync } from "./lib/automation.js";
 import { createRefreshCoordinator } from "./lib/refresh-coordinator.js";
 import {
@@ -42,7 +42,7 @@ streamDeck.actions.registerAction(usage);
 
 export const refresh = async (): Promise<void> => {
   try {
-    await codexStore.refreshLiveComposer();
+    await activeProvider().refresh();
     await Promise.all([
       agentStatus.refreshAll(),
       agentNavigator.refreshAll(),
@@ -94,7 +94,7 @@ releaseSynthesizedKeysSync();
 process.once("exit", () => {
   refreshCoordinator.stop();
   releaseSynthesizedKeysSync();
-  codexStore.close();
+  activeProvider().close();
 });
 
 await streamDeck.connect();

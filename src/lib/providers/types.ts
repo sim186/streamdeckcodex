@@ -46,8 +46,16 @@ export interface AgentProvider {
 
   listSessions(limit?: number): SessionSnapshot[];
   focusedSession(): AgentSnapshot | undefined;
+  latestSession(): AgentSnapshot | undefined;
   limits(): Promise<LimitSnapshot | undefined>;
   context(): ContextSnapshot | undefined;
+
+  /**
+   * Marks a finished session as seen. Backends that do not track unread state
+   * implement this as a no-op rather than omitting it, so callers never have
+   * to ask whether acknowledgement is available.
+   */
+  acknowledge(sessionId: string, at?: number): void;
 
   /** Pulls whatever the backend cannot observe passively. */
   refresh(): Promise<void>;
@@ -71,4 +79,20 @@ export function featuresOf(provider: AgentProvider): AgentFeature[] {
   return (["model", "reasoning", "approvalMode"] as const).filter((feature) =>
     supports(provider, feature),
   );
+}
+
+/**
+ * Resolves an optional feature or fails with the backend named. A key wired to
+ * a control its provider does not implement is a configuration error, and
+ * saying which agent lacks what beats an undefined call deep in a renderer.
+ */
+export function requireFeature<Feature extends AgentFeature>(
+  provider: AgentProvider,
+  feature: Feature,
+): NonNullable<AgentProvider[Feature]> {
+  const member = provider[feature];
+  if (member === undefined) {
+    throw new Error(`${provider.label} does not support ${feature}`);
+  }
+  return member as NonNullable<AgentProvider[Feature]>;
 }

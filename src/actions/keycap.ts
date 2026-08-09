@@ -13,7 +13,7 @@ import {
   openSkills,
 } from "../lib/automation.js";
 import { COMMANDS } from "../lib/commands.js";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
 import { keycapWorkflow } from "../lib/keycap-workflows.js";
 import { keycapSvg, svgDataUrl } from "../lib/visuals.js";
 import { renderKey } from "../lib/render-cache.js";
@@ -43,7 +43,7 @@ export class KeycapAction extends SingletonAction<KeycapSettings> {
     try {
       if (actionKind === "new-chat") await openNewChat();
       else if (actionKind === "new-project") {
-        const focusedThread = codexStore.focusedThread();
+        const focusedThread = activeProvider().focusedSession();
         if (!focusedThread)
           throw new Error("No focused Codex task is available.");
         await openNewProject(focusedThread.id);
@@ -52,7 +52,7 @@ export class KeycapAction extends SingletonAction<KeycapSettings> {
         const id = actionKind.slice("workflow:".length);
         const workflow = keycapWorkflow(id);
         if (!workflow) throw new Error("unsupported keycap workflow");
-        const focusedThread = codexStore.focusedThread();
+        const focusedThread = activeProvider().focusedSession();
         if (!focusedThread) {
           throw new Error("No focused Codex task is available.");
         }
@@ -64,7 +64,7 @@ export class KeycapAction extends SingletonAction<KeycapSettings> {
         // down/up lifecycle handling, not a one-shot keycap dispatch.
         if (!command || command.id === "dictate")
           throw new Error("unsupported keycap command");
-        const focusedThread = codexStore.focusedThread();
+        const focusedThread = activeProvider().focusedSession();
         if (!focusedThread) {
           throw new Error("No focused Codex task is available.");
         }

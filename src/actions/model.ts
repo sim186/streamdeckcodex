@@ -7,7 +7,9 @@ import streamDeck, {
   type WillAppearEvent,
 } from "@elgato/streamdeck";
 import { applyModel } from "../lib/automation.js";
-import { codexStore } from "../lib/codex-store.js";
+import type { ModelSnapshot } from "../types.js";
+import { activeProvider } from "../lib/providers/registry.js";
+import { requireFeature } from "../lib/providers/types.js";
 import { pickerFailureLabel } from "../lib/codex-ui-control.js";
 import {
   confirmModel,
@@ -29,7 +31,7 @@ export class ModelAction extends SingletonAction<ModelSettings> {
 
   async onWillAppear(event: WillAppearEvent<ModelSettings>): Promise<void> {
     if (!event.action.isDial()) return;
-    const snapshot = codexStore.modelSnapshot();
+    const snapshot = requireFeature(activeProvider(), "model")();
     const fallback = snapshot.options[0]?.slug ?? "";
     const applied = snapshot.options.some(
       (option) => option.slug === snapshot.current,
@@ -48,7 +50,7 @@ export class ModelAction extends SingletonAction<ModelSettings> {
   }
 
   async onDialRotate(event: DialRotateEvent<ModelSettings>): Promise<void> {
-    const snapshot = codexStore.modelSnapshot();
+    const snapshot = requireFeature(activeProvider(), "model")();
     const current = this.#state.get(event.action.id) ?? {
       selected: snapshot.current || snapshot.options[0]?.slug || "",
       applied: snapshot.current,
@@ -71,7 +73,7 @@ export class ModelAction extends SingletonAction<ModelSettings> {
   }
 
   async refreshAll(): Promise<void> {
-    const snapshot = codexStore.modelSnapshot();
+    const snapshot = requireFeature(activeProvider(), "model")();
     await Promise.all(
       [...this.actions]
         .filter((visible) => visible.isDial())
@@ -105,7 +107,7 @@ export class ModelAction extends SingletonAction<ModelSettings> {
     context: string,
     actionInstance: Action<ModelSettings>,
   ): Promise<void> {
-    const snapshot = codexStore.modelSnapshot();
+    const snapshot = requireFeature(activeProvider(), "model")();
     const current = this.#state.get(context) ?? {
       selected: snapshot.current || snapshot.options[0]?.slug || "",
       applied: snapshot.current,
@@ -131,7 +133,7 @@ export class ModelAction extends SingletonAction<ModelSettings> {
           `Live Codex picker retained ${live.model ?? "no model"} instead of ${option.label}`,
         );
       }
-      codexStore.invalidate();
+      activeProvider().invalidate();
       this.#state.set(context, state);
       await actionInstance.setSettings({
         selectedModel: state.selected,
@@ -140,7 +142,7 @@ export class ModelAction extends SingletonAction<ModelSettings> {
       await this.draw(
         actionInstance,
         state,
-        codexStore.modelSnapshot().options,
+        requireFeature(activeProvider(), "model")().options,
       );
       streamDeck.logger.info(`Applied model ${option.slug}`);
     } catch (error) {
@@ -161,7 +163,7 @@ export class ModelAction extends SingletonAction<ModelSettings> {
   private async draw(
     actionInstance: Action<ModelSettings>,
     state: ModelDialState,
-    options: ReturnType<typeof codexStore.modelSnapshot>["options"],
+    options: ModelSnapshot["options"],
   ): Promise<void> {
     if (!actionInstance.isDial()) return;
     await renderFeedback(actionInstance, modelFeedback(state, options));

@@ -5,7 +5,7 @@ import {
   SingletonAction,
   type WillAppearEvent,
 } from "@elgato/streamdeck";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
 import { toggleContextView, type ContextView } from "../lib/context.js";
 import { contextKeySvg, svgDataUrl } from "../lib/visuals.js";
 import { renderKey } from "../lib/render-cache.js";
@@ -40,7 +40,7 @@ export class ContextAction extends SingletonAction {
       actionInstance,
       svgDataUrl(
         contextKeySvg(
-          codexStore.contextSnapshot(),
+          activeProvider().context(),
           this.#mode.get(actionInstance.id) ?? "remaining",
         ),
       ),

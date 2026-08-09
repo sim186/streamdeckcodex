@@ -59,6 +59,21 @@ export function describeAgentProviderContract(
     expect(limitViews(snapshot).length).toBeGreaterThan(0);
   });
 
+  it("returns a listed session as its latest, when it has one", () => {
+    const provider = build();
+    const latest = provider.latestSession();
+    if (latest === undefined) return;
+    expect(latest.id).toMatch(/\S/);
+  });
+
+  it("accepts acknowledgement of any session id without throwing", () => {
+    const provider = build();
+    expect(() =>
+      provider.acknowledge("session-that-does-not-exist"),
+    ).not.toThrow();
+    expect(() => provider.acknowledge("session-1", 1)).not.toThrow();
+  });
+
   it("keeps context percentages within range when it reports context", () => {
     const context = build().context();
     if (context === undefined) return;

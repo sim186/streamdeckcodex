@@ -13,6 +13,8 @@ const store = {
     ].slice(0, limit),
   ),
   focusedThread: vi.fn(() => ({ id: "thread-1" })),
+  latestThread: vi.fn(() => ({ id: "thread-1" })),
+  acknowledge: vi.fn(),
   limitsSnapshot: vi.fn(async () => ({
     agent: "codex",
     observedAt: 0,
@@ -104,6 +106,8 @@ describe("feature detection", () => {
     label: "Minimal",
     listSessions: () => [],
     focusedSession: () => undefined,
+    latestSession: () => undefined,
+    acknowledge: () => undefined,
     limits: async () => undefined,
     context: () => undefined,
     refresh: async () => undefined,
@@ -128,10 +132,13 @@ describe("provider registry", () => {
     expect(registry.getProvider("codex")).toBe(codexProvider);
   });
 
+  it("registers Claude Code without making it active", () => {
+    expect(registry.getProvider("claude-code")?.label).toBe("Claude Code");
+    expect(registry.activeProvider().id).toBe("codex");
+  });
+
   it("refuses to activate a backend that was never registered", () => {
-    expect(() => registry.setActiveProvider("claude-code")).toThrow(
-      /unregistered/i,
-    );
+    expect(() => registry.setActiveProvider("goose")).toThrow(/unregistered/i);
     expect(registry.activeProvider().id).toBe("codex");
   });
 

@@ -6,7 +6,8 @@ import streamDeck, {
   type WillAppearEvent,
 } from "@elgato/streamdeck";
 import { type CodexApprovalMode } from "../lib/codex-ui-control.js";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
+import { requireFeature } from "../lib/providers/types.js";
 import {
   approvalKeySvg,
   svgDataUrl,
@@ -24,9 +25,12 @@ export class ApprovalModeAction extends SingletonAction<ApprovalSettings> {
 
   async onKeyDown(event: KeyDownEvent<ApprovalSettings>): Promise<void> {
     try {
-      if (!codexStore.focusedThread()?.id)
+      if (!activeProvider().focusedSession()?.id)
         throw new Error("No focused Codex task is available.");
-      const applied = await codexStore.cycleLiveComposerApprovalMode();
+      const applied = await requireFeature(
+        activeProvider(),
+        "approvalMode",
+      ).cycle();
       await event.action.setSettings({
         ...event.payload.settings,
         mode: applied,
@@ -51,14 +55,14 @@ export class ApprovalModeAction extends SingletonAction<ApprovalSettings> {
   private async drawLive(
     actionInstance: Action<ApprovalSettings>,
   ): Promise<void> {
-    if (!codexStore.focusedThread()?.id) {
+    if (!activeProvider().focusedSession()?.id) {
       await this.draw(actionInstance, "unknown");
       return;
     }
     let mode: CodexApprovalMode | undefined;
     try {
-      await codexStore.refreshLiveComposer();
-      mode = codexStore.liveComposerState()?.approvalMode;
+      await activeProvider().refresh();
+      mode = requireFeature(activeProvider(), "approvalMode").current();
     } catch {
       // A read-only refresh is allowed to be unavailable while Codex is in
       // the background or between composers. The key renders Unknown; only a

@@ -22,6 +22,13 @@ export const codexProvider: AgentProvider = {
   focusedSession() {
     return codexStore.focusedThread();
   },
+  latestSession() {
+    return codexStore.latestThread();
+  },
+  acknowledge(sessionId, at) {
+    if (at === undefined) codexStore.acknowledge(sessionId);
+    else codexStore.acknowledge(sessionId, at);
+  },
   limits() {
     return codexStore.limitsSnapshot();
   },

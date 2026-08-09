@@ -22,7 +22,7 @@ import {
   type CommandDefinition,
 } from "../lib/commands.js";
 import { commandKeySvg, svgDataUrl } from "../lib/visuals.js";
-import { codexStore } from "../lib/codex-store.js";
+import { activeProvider } from "../lib/providers/registry.js";
 import { pickerFailureLabel } from "../lib/codex-ui-control.js";
 import { renderFeedback, renderKey } from "../lib/render-cache.js";
 
@@ -128,7 +128,7 @@ export class CommandAction extends SingletonAction<CommandSettings> {
         if (actionInstance.isKey()) await actionInstance.showOk();
         return;
       }
-      const focusedThread = codexStore.focusedThread();
+      const focusedThread = activeProvider().focusedSession();
       if (!focusedThread)
         throw new Error("No focused Codex task is available.");
       if (command.id === "dictate") {
