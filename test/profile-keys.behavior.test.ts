@@ -99,7 +99,12 @@ vi.mock("@elgato/streamdeck", () => ({
     },
     connect: vi.fn(async () => undefined),
     devices: [],
-    logger: { error: vi.fn(), setLevel: vi.fn(), warn: vi.fn() },
+    logger: {
+      error: vi.fn(),
+      info: vi.fn(),
+      setLevel: vi.fn(),
+      warn: vi.fn(),
+    },
     profiles: { switchToProfile: vi.fn(async () => undefined) },
     settings: {
       getGlobalSettings: vi.fn(async () => ({})),

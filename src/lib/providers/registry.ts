@@ -36,6 +36,30 @@ export function setActiveProvider(id: string): void {
   activeId = id;
 }
 
+/**
+ * Selects the backend named by STREAMDECK_AGENT, if any.
+ *
+ * Selection is explicit rather than inferred: guessing from which agent looks
+ * installed would silently repoint every key at a different tool between
+ * launches. An unknown name is reported and ignored so a typo leaves the
+ * plugin on its default rather than dead.
+ */
+export function applyConfiguredProvider(env = process.env): {
+  id: string;
+  error?: string;
+} {
+  const requested = env["STREAMDECK_AGENT"]?.trim();
+  if (!requested) return { id: activeProvider().id };
+  if (!providers.has(requested)) {
+    return {
+      id: activeProvider().id,
+      error: `Unknown STREAMDECK_AGENT "${requested}"; known agents: ${[...providers.keys()].join(", ")}`,
+    };
+  }
+  setActiveProvider(requested);
+  return { id: requested };
+}
+
 /** Test seam: drops every registration, including the built-in default. */
 export function resetProviders(): void {
   providers.clear();

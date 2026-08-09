@@ -9,7 +9,10 @@ import { ModelAction } from "./actions/model.js";
 import { ReasoningAction } from "./actions/reasoning.js";
 import { UsageAction } from "./actions/usage.js";
 import { WorkflowAction } from "./actions/workflow.js";
-import { activeProvider } from "./lib/providers/registry.js";
+import {
+  activeProvider,
+  applyConfiguredProvider,
+} from "./lib/providers/registry.js";
 import { releaseSynthesizedKeysSync } from "./lib/automation.js";
 import { createRefreshCoordinator } from "./lib/refresh-coordinator.js";
 import {
@@ -29,6 +32,10 @@ const reasoning = new ReasoningAction();
 const usage = new UsageAction();
 
 streamDeck.logger.setLevel("info");
+
+const selected = applyConfiguredProvider();
+if (selected.error) streamDeck.logger.warn(selected.error);
+streamDeck.logger.info(`Driving agent backend: ${activeProvider().label}`);
 streamDeck.actions.registerAction(agentStatus);
 streamDeck.actions.registerAction(agentNavigator);
 streamDeck.actions.registerAction(approvalMode);

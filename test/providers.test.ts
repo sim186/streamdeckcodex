@@ -158,6 +158,34 @@ describe("provider registry", () => {
     }
   });
 
+  it("activates the backend named by the environment", () => {
+    try {
+      expect(
+        registry.applyConfiguredProvider({ STREAMDECK_AGENT: "claude-code" }),
+      ).toEqual({ id: "claude-code" });
+      expect(registry.activeProvider().id).toBe("claude-code");
+    } finally {
+      registry.setActiveProvider("codex");
+    }
+  });
+
+  it("keeps the default and explains itself when the name is unknown", () => {
+    const result = registry.applyConfiguredProvider({
+      STREAMDECK_AGENT: "cloud-code",
+    });
+    expect(result.id).toBe("codex");
+    expect(result.error).toMatch(/Unknown STREAMDECK_AGENT/);
+    expect(result.error).toMatch(/claude-code/);
+    expect(registry.activeProvider().id).toBe("codex");
+  });
+
+  it("leaves the default in place when nothing is configured", () => {
+    expect(registry.applyConfiguredProvider({})).toEqual({ id: "codex" });
+    expect(
+      registry.applyConfiguredProvider({ STREAMDECK_AGENT: "  " }),
+    ).toEqual({ id: "codex" });
+  });
+
   it("reports a clear failure when nothing is registered", () => {
     const snapshot = registry.allProviders();
     registry.resetProviders();

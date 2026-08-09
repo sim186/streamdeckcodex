@@ -91,6 +91,53 @@ Codex version, and the failing action when
 - On Stream Deck +, previews and applies Model and Reasoning selections with
   live dial feedback.
 
+### Agent backends
+
+The companion drives Codex by default. A second backend, Claude Code, reads
+local session transcripts; select it by setting `STREAMDECK_AGENT=claude-code`
+in the Stream Deck App's environment before the plugin starts. An unknown name
+is logged and ignored, leaving Codex active.
+
+Backends declare what they can do, and keys hide controls the active backend
+cannot honour:
+
+| Control                   | Codex | Claude Code |
+| ------------------------- | ----- | ----------- |
+| Chats, status, and unread | Yes   | Yes         |
+| Usage limits              | Yes   | Estimated   |
+| Context                   | Yes   | Yes         |
+| Model and Reasoning       | Yes   | No          |
+| Permissions               | Yes   | No          |
+
+Claude Code exposes no programmatic model switch, reasoning selector, or
+permission control, so those keys are unavailable while it is active. Its
+"focused" chat means the most recently active transcript, because the CLI runs
+in a terminal the plugin cannot inspect.
+
+### Usage limits
+
+The Quota key cycles every limit window the active backend publishes, then any
+banked balance. Codex offers 5-hour, weekly, and banked resets; a
+dollar-metered subscription would offer its own windows and balance through the
+same key.
+
+Values are rendered in the unit the vendor meters: a percentage where the
+vendor reports one, a currency amount where it publishes a cash cap, and raw
+token consumption where it publishes no cap at all. A figure the companion
+inferred rather than read is prefixed with `~` and is never presented as
+vendor-confirmed.
+
+Anthropic publishes no programmatic read of Claude Code account limits, so
+those windows are reconstructed from local transcripts and always marked as
+estimates. No token cap is published either, so the key shows tokens consumed
+rather than a percentage of an unknown allowance. Supply your own caps to get a
+percentage instead:
+
+| Variable                                | Effect                          |
+| --------------------------------------- | ------------------------------- |
+| `STREAMDECK_CLAUDE_5H_TOKEN_BUDGET`     | Token cap for the 5-hour window |
+| `STREAMDECK_CLAUDE_WEEKLY_TOKEN_BUDGET` | Token cap for the weekly window |
+
 ### Live status colors
 
 | State                       | Color     |
